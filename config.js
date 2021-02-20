@@ -92,6 +92,7 @@ module.exports = kconfig = async (kill, message) => {
         global.pollfile = 'poll_Config_'+chat.id+'.json'
         global.voterslistfile = 'poll_voters_Config_'+chat.id+'.json'
 		global.client = kill
+	
 		
 		// OUTRAS
         const double = Math.floor(Math.random() * 2) + 1
@@ -616,20 +617,22 @@ module.exports = kconfig = async (kill, message) => {
             }
             break
 			
+		
 			
-		case 'onlyadms':
+			
+	    case 'onlyadms':
 			if (mute || pvmte) return console.log('Ignorando comando [Silence]')
 			onar = body.trim().split(/ +/).slice(1)
 			if (!isGroupMsg) return kill.reply(from, mess.error.Gp, id)
             if (!isGroupAdmins) return kill.reply(from, mess.error.Ga, id)
             if (!isBotGroupAdmins) return kill.reply(from, mess.error.Ba, id)
-			if (onar.length !== 1) return kill.reply(from, `Olvidaste establecer entre activado [On], o desactivado [Off].`, id)
+			if (onar.length !== 1) return kill.reply(from, `Olvidaste encenderlo (ON) o apagarlo [Off].`, id)
             if (onar[0] == 'on') {
-				kill.setGroupToAdminsOnly(groupId, true).then(() => kill.sendText(from, 'Se cierra el grupo, en unos momentos se abre'))
+				kill.setGroupToAdminsOnly(groupId, true).then(() => kill.sendText(from, 'Se cierra el grupo!\nSE ABRIRA EN UNOS MOMENTOS :)'))
 			} else if (onar[0] == 'off') {
-				kill.setGroupToAdminsOnly(groupId, false).then(() => kill.sendText(from, 'YA PUEDEN ENVIAR MENSAJES😙😙! :D'))
+				kill.setGroupToAdminsOnly(groupId, false).then(() => kill.sendText(from, 'Ya pueden escribir gente!! NOMAS NO LLENEN EL CHAT!!🥶'))
 			} else {
-				kill.reply(from, `Olvidaste establecer entre activado [On], o desactivado [Off].`, id)
+				kill.reply(from, `Olvidaste encenderlo (ON) o apagarlo [Off].`, id)
 			}
 			break
 			
@@ -1451,19 +1454,26 @@ module.exports = kconfig = async (kill, message) => {
 			
 		case 'aki':
 			if (mute || pvmte) return console.log('Ignorando comando [Silence]')
-			const region = 'es';
-			if (args[0] == '-r') {
-				let akinm = args[1].match(/^[0-9]+$/)
-				if (!akinm) return kill.reply(from, '¡Responda solo con 0 o 1! \n0 = Sí \n1 = No', id)
-				const aki = new Aki(region);
-				await aki.start();
-				const myAnswer = `${args[1]}`
-				await aki.step(myAnswer);
-				await kill.reply(from, `Questão: ${aki.question}\n\nProgresso: ${aki.progress}\n\nResponda com /akinator -r [0 ou 1], 0 = sim, 1 = não.`, id)
-			} else {
-				const aki = new Aki(region);
+			try {
+				if (args[0] == '-r') {
+					let akinm = args[1].match(/^[0-9]+$/)
+					if (!akinm) return kill.reply(from, 'Responda solo con 0 o 1!\n0 = Si\n1 = No', id)
+					const myAnswer = `${args[1]}`
+					await aki.step(myAnswer);
+					if (aki.progress >= 70 || aki.currentStep >= 78) {
+						await aki.win()
+						var akiwon = aki.answers[0]
+						await kill.sendFileFromUrl(from, `${akiwon.absolute_picture_path}`, '', `✪ Corazonada: ${akiwon.name}\n\n✪ De: ${akiwon.description}\n\n✪ Ranking: ${akiwon.ranking}\n\n✪ Nombre: ${akiwon.pseudo}\n\n✪ Número de intentos: ${aki.guessCount}`, id)
+					} else {
+						await kill.reply(from, `Pregunta: ${aki.question}\n\nProgresso: ${aki.progress}\n\nResponda con ${prefix}aki -r [0 o 1], 0 = si, 1 = no.`, id)
+					}
+				} else {
+					await kill.reply(from, `Pregunta: ${aki.question}\n\nResponda con ${prefix}aki -r [0 o 1], 0 = si, 1 = no.`, id)
+				}
+			} catch (error) {
+				await kill.reply(from, 'La sesión del juego ha expirado, intentaré actualizar, si no funciona, reinicie el BOT.', id)
+				new Aki(region)
 				await aki.start()
-				await kill.reply(from, `Pregunta: ${aki.question}\n\nResponda con /aki -r [0 o 1], 0 = si, 1 = no.`, id)
 			}
 			break
 			
@@ -1557,9 +1567,9 @@ module.exports = kconfig = async (kill, message) => {
 
         case 'nsfw':
 			if (mute || pvmte) return console.log('Ignorando comando [Silence]')
-       	    const isGroupOwner = sender.id === chat.groupMetadata.owner
+       	    const isGroupAdmins = sender.id === chat.groupMetadata.owner
             if (args.length !== 1) return kill.reply(from, 'Defina enable o disable', id)
-			if (isGroupMsg && isGroupOwner) {
+			if (isGroupMsg) {
 				if (args[0].toLowerCase() == 'enable') {
 					nsfw_.push(chat.id)
 					fs.writeFileSync('./lib/config/NSFW.json', JSON.stringify(nsfw_))
@@ -1571,7 +1581,7 @@ module.exports = kconfig = async (kill, message) => {
 				} else {
 					kill.reply(from, 'Defina enable o disable', id)
 				}
-			} else if (isGroupMsg && isOwner) {
+			} else if (isGroupMsg) {
 				if (args[0].toLowerCase() == 'enable') {
 					nsfw_.push(chat.id)
 					fs.writeFileSync('./lib/config/NSFW.json', JSON.stringify(nsfw_))
@@ -2398,32 +2408,15 @@ module.exports = kconfig = async (kill, message) => {
 				if (!isBotGroupAdmins) return kill.reply(from, mess.error.Ba, id)
 				if (quotedMsg) {
 					const negquo = quotedMsgObj.sender.id
-					if (chief.includes(negquo)) return kill.reply(from, 'Si lose😣, esa persona arta!!, pero no puedo eliminarlo, por que es el dueño del grupo. Tendremos que seguir aguantandolo:(.', id)
-					await kill.sendTextWithMentions(from, `Expulsando participante @${negquo} ...`)
+					if (chief.includes(negquo)) return kill.reply(from, 'Si lo se, este cuate arta😖 pero es el creador del grupo, no puedo sacarlo😖. Tendremos que seguir awantandolo😰.', id)
+					await kill.sendTextWithMentions(from, `Expulsando participante @${negquo} del grupo...`)
 					await kill.removeParticipant(groupId, negquo)
 				} else {
-					if (mentionedJidList.length == 0) return kill.reply(from, 'Escribiste el comando muy mal, arréglalo y envíalo bien.', id)
-					await kill.sendTextWithMentions(from, `Expulsando participante ${mentionedJidList.map(x => `@${x.replace('@c.us', '')}`).join('\n')} ...`)
+					if (mentionedJidList.length == 0) return kill.reply(from, 'Você digitou o comando de forma muito errada, arrume e envie certo.', id)
+					await kill.sendTextWithMentions(from, `Expulsando participante ${mentionedJidList.map(x => `@${x.replace('@c.us', '')}`).join('\n')} del grupo...`)
 					for (let i = 0; i < mentionedJidList.length; i++) {
-						if (chief.includes(mentionedJidList[i])) return kill.reply(from, 'Si lose😣, esa persona arta!!, pero no puedo eliminarlo, por que es el dueño del grupo. Tendremos que seguir aguantandolo:(.', id)
-						if (ownerNumber.includes(mentionedJidList[i])) return kill.reply(from, 'Desafortunadamente, es un participante VIP, no puedo expulsar.', id)
-						if (groupAdmins.includes(mentionedJidList[i])) return kill.reply(from, mess.error.Kl, id)
-						await kill.removeParticipant(groupId, mentionedJidList[i])
-					}
-				}
-			} else if (isGroupMsg && isOwner) {
-				if (!isBotGroupAdmins) return kill.reply(from, mess.error.Ba, id)
-				if (quotedMsg) {
-					const negquo = quotedMsgObj.sender.id
-					if (chief.includes(negquo)) return kill.reply(from, 'Si lose😣, esa persona arta!!, pero no puedo eliminarlo, por que es el dueño del grupo. Tendremos que seguir aguantandolo:(.', id)
-					await kill.sendTextWithMentions(from, `Expulsando participante @${negquo} ...`)
-					await kill.removeParticipant(groupId, negquo)
-				} else {
-					if (mentionedJidList.length == 0) return kill.reply(from, 'Escribiste el comando muy mal, arréglalo y envíalo bien.', id)
-					await kill.sendTextWithMentions(from, `Expulsando bebado(a) ${mentionedJidList.map(x => `@${x.replace('@c.us', '')}`).join('\n')} do cabaré...`)
-					for (let i = 0; i < mentionedJidList.length; i++) {
-						if (chief.includes(mentionedJidList[i])) return kill.reply(from, 'Si lose😣, esa persona arta!!, pero no puedo eliminarlo, por que es el dueño del grupo. Tendremos que seguir aguantandolo:(.', id)
-						if (ownerNumber.includes(mentionedJidList[i])) return kill.reply(from, 'Desafortunadamente, es un participante VIP, no puedo expulsar.', id)
+						if (chief.includes(mentionedJidList[i])) return kill.reply(from, 'Si lo se, este cuate arta😖 pero es el creador del grupo, no puedo sacarlo😖. Tendremos que seguir awantandolo😰.', id)
+						if (ownerNumber.includes(mentionedJidList[i])) return kill.reply(from, 'Desafortunadamente, es un participante VIP, no lo puedo expulsar.', id)
 						if (groupAdmins.includes(mentionedJidList[i])) return kill.reply(from, mess.error.Kl, id)
 						await kill.removeParticipant(groupId, mentionedJidList[i])
 					}
@@ -2434,6 +2427,7 @@ module.exports = kconfig = async (kill, message) => {
 				await kill.reply(from, 'Este comando solo se puede usar en grupos!', id)
 			}
             break
+
 
 
         case 'leave':
@@ -3741,6 +3735,48 @@ module.exports = kconfig = async (kill, message) => {
             } else {
                 await kill.reply(from, 'Defina entre [on] e [off].', id)
             }
+			break
+			
+			
+	case 'unblock':
+			if (isOwner) {
+				if (isGroupMsg && quotedMsg) {
+					const unblokea = quotedMsgObj.sender.id
+					await kill.contactUnblock(`${unblokea}`)
+					await kill.sendTextWithMentions(from, `Listo! el @${unblokea} ha sido desbloqueado de mi WhatsApp.`)
+				} else {
+					await kill.contactUnblock(`${args[0]}@c.us`)
+					await kill.sendTextWithMentions(from, `Listo! el @${args[0]} ha sido desbloqueado de mi WhatsApp.`)
+				}
+			} else {
+				await kill.reply(from, mess.error.Kl, id)
+			}
+			break
+			
+		
+		case 'block':
+			if (isOwner) {
+				if (isGroupMsg && quotedMsg) {
+					const blokea = quotedMsgObj.sender.id
+					await kill.contactBlock(`${blokea}`)
+					await kill.sendTextWithMentions(from, `Hecho! el @${blokea} foi bloqueado do meu WhatsAppfue bloqueado de mi WhatsApp.`)
+				} else {
+					await kill.contactBlock(`${args[0]}@c.us`)
+					await kill.sendTextWithMentions(from, `Listo! el @${args[0]} ha sido desbloqueado de mi WhatsApp.`)
+				}
+			} else {
+				await kill.reply(from, mess.error.Kl, id)
+			}
+			break
+			
+			
+		case 'allid':
+			const gpids = await kill.getAllGroups()
+			let idmsgp = ''
+			for (let ids of gpids) {
+				idmsgp += `➸ ${ids.contact.name} =\n${ids.contact.id.replace(/@g.us/g,'')}\n\n`
+            }
+			await kill.reply(from, 'Estos son actualmente mis grupos:\n\n' + idmsgp, id)
 			break
 
         }
